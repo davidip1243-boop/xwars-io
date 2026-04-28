@@ -10,6 +10,7 @@ const BASE_BUFFER = 5;
 const WALL_GAP = 3;
 const LEARNING_KEY = "xwars-player-profile-v1";
 const ACCOUNT_KEY = "xwars-account-v1";
+const ONLINE_SERVER_KEY = "xwars-online-server-v1";
 const BOT_CANDIDATE_LIMIT = 24;
 const THREAT_SAMPLE_LIMIT = 8;
 const BOT_BRANCH_AFTER = 6;
@@ -95,6 +96,7 @@ const statsBotRating = document.querySelector("#statsBotRating");
 const screenSizeInput = document.querySelector("#screenSizeInput");
 const screenSizeValue = document.querySelector("#screenSizeValue");
 const themeSelect = document.querySelector("#themeSelect");
+const onlineServerInput = document.querySelector("#onlineServerInput");
 const roomInput = document.querySelector("#roomInput");
 const onlineBtn = document.querySelector("#onlineBtn");
 const onlineStatus = document.querySelector("#onlineStatus");
@@ -122,6 +124,7 @@ let opponentOwner = BOT;
 let onlineEnabled = false;
 let socket = null;
 let roomsRefreshTimer = null;
+let onlineServer = loadOnlineServer();
 let gameOver = false;
 let moveNumber = 1;
 let placementsLeft = PLACEMENTS_PER_TURN;
@@ -1482,6 +1485,52 @@ function saveAccount() {
   }
 }
 
+function loadOnlineServer() {
+  const configured = normalizeOnlineServer(window.XWARS_ONLINE_SERVER || "");
+  try {
+    return normalizeOnlineServer(window.localStorage.getItem(ONLINE_SERVER_KEY) || configured);
+  } catch {
+    return configured;
+  }
+}
+
+function saveOnlineServer(value) {
+  onlineServer = normalizeOnlineServer(value);
+  onlineServerInput.value = onlineServer;
+  try {
+    if (onlineServer) {
+      window.localStorage.setItem(ONLINE_SERVER_KEY, onlineServer);
+    } else {
+      window.localStorage.removeItem(ONLINE_SERVER_KEY);
+    }
+  } catch {
+    // Local storage may be unavailable in private or locked-down browser contexts.
+  }
+  refreshRooms(true);
+}
+
+function normalizeOnlineServer(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  const withProtocol = /^[a-z]+:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
+function onlineHttpUrl(pathname) {
+  if (!onlineServer) return pathname;
+  return `${onlineServer}${pathname}`;
+}
+
+function onlineWebSocketUrl(pathname) {
+  if (!onlineServer) {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    return `${protocol}://${window.location.host}${pathname}`;
+  }
+  const url = new URL(pathname, onlineServer);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
+}
+
 function updateProfileUI() {
   applyTheme(account.theme);
   profileName.textContent = account.name || "Guest";
@@ -1507,6 +1556,7 @@ function updateProfileUI() {
   screenSizeInput.value = String(clampCameraSize(account.screenSize));
   screenSizeValue.textContent = String(clampCameraSize(account.screenSize));
   themeSelect.value = account.theme === "dark" ? "dark" : "light";
+  onlineServerInput.value = onlineServer;
   if (!onlineEnabled) {
     opponentName.textContent = "Bot";
     opponentRating.textContent = String(account.botRating);
@@ -1597,8 +1647,7 @@ function connectOnline() {
     socket = null;
     return;
   }
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
+  socket = new WebSocket(onlineWebSocketUrl("/ws"));
   onlineStatus.textContent = "Connecting...";
   socket.addEventListener("open", () => {
     socket.send(JSON.stringify({ type: "join", room: roomInput.value.trim() || "xwars", profile: publicProfile() }));
@@ -1683,12 +1732,12 @@ function applyProfiles(profiles) {
 async function refreshRooms(showLoading = false) {
   if (showLoading) roomsList.replaceChildren(statusLine("Checking rooms..."));
   try {
-    const response = await fetch("/rooms", { cache: "no-store" });
+    const response = await fetch(onlineHttpUrl("/rooms"), { cache: "no-store" });
     if (!response.ok) throw new Error("rooms unavailable");
     const data = await response.json();
     renderRooms(data.rooms || []);
   } catch {
-    roomsList.replaceChildren(statusLine("Rooms show when the online server is running."));
+    roomsList.replaceChildren(statusLine("Rooms show when the online server is reachable."));
   }
 }
 
@@ -1816,6 +1865,7 @@ googleProfileBtn.addEventListener("click", () => {
 });
 screenSizeInput.addEventListener("input", () => updateScreenSize(screenSizeInput.value));
 themeSelect.addEventListener("change", () => updateTheme(themeSelect.value));
+onlineServerInput.addEventListener("change", () => saveOnlineServer(onlineServerInput.value));
 onlineBtn.addEventListener("click", connectOnline);
 refreshRoomsBtn.addEventListener("click", () => refreshRooms(true));
 for (const button of panelTabButtons) {

@@ -24,7 +24,15 @@ The project is named `xwars-io` for hosting.
 
 Vercel can host the browser game as a static site, but Vercel Functions do not keep WebSocket room connections open. That means the built-in `server.js` room server is for local/custom Node hosting, not Vercel multiplayer rooms.
 
-For real online rooms in production, host `server.js` on a WebSocket-capable Node platform or swap the room layer to a realtime provider such as Ably, Liveblocks, PartyKit, Pusher, PubNub, Firebase Realtime Database, or Supabase Realtime.
+For real online rooms in production, host `server.js` on a WebSocket-capable Node platform such as Render, Railway, Fly.io, or a VPS. The repo includes `render.yaml` and a `Dockerfile` for that.
+
+After the online server is deployed, set its URL in `online-config.js`:
+
+```js
+window.XWARS_ONLINE_SERVER = "https://your-xwars-online-server.example.com";
+```
+
+The Vercel game will keep serving the page, while rooms and moves connect to that always-on server.
 
 ## Current Rules
 

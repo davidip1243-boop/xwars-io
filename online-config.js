@@ -1,0 +1,1 @@
+window.XWARS_ONLINE_SERVER = "";

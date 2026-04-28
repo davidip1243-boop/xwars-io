@@ -16,6 +16,10 @@ const MIME = {
 
 const server = http.createServer((req, res) => {
   const urlPath = req.url === "/" ? "/index.html" : decodeURIComponent(req.url.split("?")[0]);
+  if (req.method === "OPTIONS") {
+    writeCors(res);
+    return;
+  }
   if (urlPath === "/rooms") {
     writeJson(res, { rooms: getRoomList() });
     return;
@@ -41,8 +45,22 @@ function writeJson(res, data) {
   res.writeHead(200, {
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8",
+    ...corsHeaders(),
   });
   res.end(JSON.stringify(data));
+}
+
+function writeCors(res) {
+  res.writeHead(204, corsHeaders());
+  res.end();
+}
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Origin": "*",
+  };
 }
 
 server.on("upgrade", (req, socket) => {
