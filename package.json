@@ -1,0 +1,14 @@
+{
+  "name": "xwars-io",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Xwars paper-grid strategy game with local bot play and room-based WebSocket multiplayer.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check game.js && node --check server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
