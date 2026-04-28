@@ -43,6 +43,7 @@
           <div class="panel-tabs" role="tablist" aria-label="Panel sections">
             <button class="panel-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="lobbyPanel" data-panel="lobby">Lobby</button>
             <button class="panel-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="gamePanel" data-panel="game">Game</button>
+            <button class="panel-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="statsPanel" data-panel="stats">Stats</button>
             <button class="panel-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profilePanel" data-panel="profile">Profile</button>
             <button class="panel-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="settingsPanel" data-panel="settings">Settings</button>
           </div>
@@ -89,6 +90,44 @@
             <ol id="moveLog" class="move-log" aria-label="Move log"></ol>
           </section>
 
+          <section id="statsPanel" class="panel-page" role="tabpanel" hidden>
+            <div class="stats-card">
+              <div class="stats-head">
+                <div>
+                  <h2>Stats</h2>
+                  <p id="statsName">Guest</p>
+                </div>
+                <strong id="statsRating">1000</strong>
+              </div>
+              <div class="stats-list">
+                <div class="stat-row">
+                  <span>Wins</span>
+                  <strong id="profileWins">0</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Losses</span>
+                  <strong id="profileLosses">0</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Total games</span>
+                  <strong id="statsGames">0</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Win rate</span>
+                  <strong id="statsWinRate">0%</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Last rating change</span>
+                  <strong id="profileDelta">+0</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Bot rating</span>
+                  <strong id="statsBotRating">1000</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section id="profilePanel" class="panel-page" role="tabpanel" hidden>
             <div class="profile-card">
               <div class="profile-head">
@@ -113,11 +152,6 @@
               <div class="profile-actions">
                 <button id="saveProfileBtn" type="button">Save profile</button>
                 <button id="googleProfileBtn" type="button">Google</button>
-              </div>
-              <div class="rating-row">
-                <span>W <strong id="profileWins">0</strong></span>
-                <span>L <strong id="profileLosses">0</strong></span>
-                <span id="profileDelta">+0</span>
               </div>
             </div>
           </section>

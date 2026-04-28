@@ -310,14 +310,15 @@ h1 {
   box-shadow: 0 10px 24px rgba(31, 41, 51, 0.08);
   display: grid;
   gap: 4px;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 4px;
 }
 
 .panel-tab-btn {
   border-color: transparent;
+  font-size: 0.82rem;
   min-height: 34px;
-  padding: 0 8px;
+  padding: 0 6px;
 }
 
 .panel-tab-btn.active {
@@ -338,6 +339,7 @@ h1 {
 .online-card,
 .panel-card,
 .profile-card,
+.stats-card,
 .rule-box,
 .move-log {
   background: var(--surface);
@@ -407,7 +409,8 @@ h1 {
   font-size: 0.9rem;
 }
 
-.profile-card {
+.profile-card,
+.stats-card {
   display: grid;
   gap: 10px;
   padding: 14px;
@@ -419,24 +422,27 @@ h1 {
 
 .profile-head,
 .profile-actions,
-.rating-row {
+.stats-head {
   align-items: center;
   display: flex;
   gap: 8px;
   justify-content: space-between;
 }
 
-.profile-head h2 {
+.profile-head h2,
+.stats-head h2 {
   font-size: 1rem;
 }
 
-.profile-head p {
+.profile-head p,
+.stats-head p {
   color: var(--muted);
   font-size: 0.9rem;
   margin-top: 2px;
 }
 
-#profileRating {
+#profileRating,
+#statsRating {
   background: var(--ink);
   border-radius: 8px;
   color: #fff;
@@ -502,10 +508,23 @@ select {
   padding: 0 8px;
 }
 
-.rating-row {
+.stats-list {
+  display: grid;
+}
+
+.stat-row {
+  align-items: center;
+  border-top: 1px solid var(--panel-border);
   color: var(--muted);
+  display: flex;
   font-size: 0.88rem;
   font-weight: 800;
+  justify-content: space-between;
+  min-height: 38px;
+}
+
+.stat-row strong {
+  color: var(--ink);
 }
 
 #profileDelta {
