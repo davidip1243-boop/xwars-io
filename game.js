@@ -11,7 +11,7 @@ const WALL_GAP = 3;
 const LEARNING_KEY = "xwars-player-profile-v1";
 const ACCOUNT_KEY = "xwars-account-v1";
 const ONLINE_SERVER_KEY = "xwars-online-server-v1";
-const BOT_CANDIDATE_LIMIT = 24;
+const BOT_CANDIDATE_LIMIT = 40;
 const THREAT_SAMPLE_LIMIT = 8;
 const BOT_BRANCH_AFTER = 6;
 const BOT_BRANCH_UNTIL = 14;
@@ -320,21 +320,28 @@ function createBotContext() {
   const humanMoves = legalMoves(HUMAN);
   const botMoves = legalMoves(BOT);
   const botConnectedCount = connectedNetwork(BOT).size;
+  const humanConnectedCount = connectedNetwork(HUMAN).size;
   const humanNetworkCells = collectNetworkCells(HUMAN);
   const humanTitanCells = collectPieceKindCells(HUMAN, "titan");
   const botBase = findBase(BOT);
   const botNetworkCells = collectNetworkCells(BOT);
+  const humanPieceCount = countNetworkPieces(HUMAN);
+  const humanWeakCells = analyzeHumanWeakCells(humanNetworkCells, botNetworkCells, humanMoves);
   return {
     humanBase: findBase(HUMAN),
     botBase,
     beforeHumanMoves: humanMoves,
     beforeHumanMoveCount: humanMoves.length,
+    beforeHumanConnectedCount: humanConnectedCount,
+    beforeHumanStrandedCount: humanPieceCount - humanConnectedCount,
     beforeBotMoveCount: botMoves.length,
     beforeBotConnectedCount: botConnectedCount,
     botStrandedCount: countNetworkPieces(BOT) - botConnectedCount,
     beforeHumanThreat: bestOpponentThreat(HUMAN, humanMoves),
     humanNetworkCells,
     humanTitanCells,
+    humanWeakCells,
+    humanPieceCount,
     titanPressureAtBotBase: botBase ? distanceToCells(botBase.row, botBase.col, humanTitanCells) <= 5 : false,
     recentStructureHit: recentStructureHit(),
     underAttack: botUnderAttack({ botConnectedCount, humanMoves, humanTitanCells, botBase }),
@@ -368,6 +375,7 @@ function roughBotMoveScore({ row, col }, context) {
   score += attackEverywhereRoughScore({ humanDistance, humanFrontierPressure, support, context });
   score += homeBaseTrapRoughScore({ row, col, humanTitanDistance: titanDistance, humanMoveReduction: humanFrontierPressure, capture, context });
   score += structureHitResponseRoughScore({ row, col, humanDistance, humanMoveReduction: humanFrontierPressure, capture, context });
+  score += weakHumanStrikeRoughScore({ row, col, capture, humanDistance, humanMoveReduction: humanFrontierPressure, context });
   score += titanAvoidanceScore({
     humanTitanDistance: titanDistance,
     humanMoveReduction: humanFrontierPressure,
@@ -400,6 +408,8 @@ function scoreBotMove({ row, col }, context) {
   board[row][col] = { kind: original.kind === "x" ? "titan" : "x", owner: BOT };
   const afterHumanMoves = legalMoves(HUMAN);
   const afterHumanMoveCount = afterHumanMoves.length;
+  const afterHumanConnectedCount = connectedNetwork(HUMAN).size;
+  const afterHumanStrandedCount = countNetworkPieces(HUMAN) - afterHumanConnectedCount;
   const afterBotMoveCount = legalMoves(BOT).length;
   const afterBotConnectedCount = connectedNetwork(BOT).size;
   const vulnerableBait = !capture && isLegalMove(row, col, HUMAN);
@@ -408,6 +418,7 @@ function scoreBotMove({ row, col }, context) {
   board[row][col] = original;
 
   const humanMoveReduction = context.beforeHumanMoveCount - afterHumanMoveCount;
+  const humanStrandedGain = Math.max(0, afterHumanStrandedCount - context.beforeHumanStrandedCount);
   const ownMobilityChange = afterBotMoveCount - context.beforeBotMoveCount;
   const reconnectGain = Math.max(0, afterBotConnectedCount - context.beforeBotConnectedCount - 1);
   const frontGain = afterBotFrontCount - context.beforeBotFrontCount;
@@ -465,6 +476,19 @@ function scoreBotMove({ row, col }, context) {
     capture,
     context,
   });
+  score += weakHumanStrikeScore({
+    row,
+    col,
+    capture,
+    humanMoveReduction,
+    humanStrandedGain,
+    humanNetworkDistance,
+    humanTitanDistance,
+    botNetworkSupport,
+    lineStrength,
+    afterHumanMoveCount,
+    context,
+  });
   score += learnedMoveBonus(learnedFeatures);
   score += botOutcomeBonus(learnedFeatures);
   score += lineStrength * 30;
@@ -502,6 +526,86 @@ function scoreBotMove({ row, col }, context) {
     const supportDiscount = botNetworkSupport * 20 + lineStrength * 30;
     score -= Math.max(45, 120 + baseDanger * 35 - supportDiscount);
   }
+
+  return score;
+}
+
+function analyzeHumanWeakCells(humanNetworkCells, botNetworkCells, humanMoves) {
+  const weakCells = new Map();
+  const base = findBase(HUMAN);
+  for (const cell of humanNetworkCells) {
+    const boardCell = board[cell.row][cell.col];
+    if (boardCell.kind !== "x") continue;
+
+    const support = neighbors(cell.row, cell.col).filter(([r, c]) => isNetworkCell(board[r][c], HUMAN)).length;
+    const titanSupport = neighbors(cell.row, cell.col).filter(([r, c]) => board[r][c].owner === HUMAN && board[r][c].kind === "titan").length;
+    const localMobility = countAdjacentHumanLegalMoves(cell.row, cell.col, humanMoves);
+    const botDistance = distanceToCells(cell.row, cell.col, botNetworkCells);
+    const baseDistance = base ? distance(cell.row, cell.col, base.row, base.col) : 0;
+
+    let score = 0;
+    if (support <= 1) score += 280;
+    if (support === 2) score += 165;
+    if (support === 3) score += 55;
+    if (support >= 5) score -= 90;
+    score += Math.max(0, baseDistance - 4) * 9;
+    score += Math.max(0, 5 - localMobility) * 32;
+    if (botDistance <= 1) score += 160;
+    else if (botDistance <= 2) score += 120;
+    else if (botDistance <= 4) score += 55;
+    score -= titanSupport * 70;
+
+    if (score > 80) weakCells.set(key(cell.row, cell.col), score);
+  }
+  return weakCells;
+}
+
+function weakHumanTargetScore(row, col, context) {
+  let score = context.humanWeakCells.get(key(row, col)) || 0;
+  for (const [nextRow, nextCol] of neighbors(row, col)) {
+    score = Math.max(score, (context.humanWeakCells.get(key(nextRow, nextCol)) || 0) * 0.45);
+  }
+  return score;
+}
+
+function weakHumanStrikeRoughScore({ row, col, capture, humanDistance, humanMoveReduction, context }) {
+  const weakness = weakHumanTargetScore(row, col, context);
+  if (weakness <= 0 && humanDistance > 2) return 0;
+
+  let score = weakness * (capture ? 1.55 : 0.55);
+  score += humanMoveReduction * 80;
+  if (capture) score += 165;
+  if (humanDistance <= 2) score += 70;
+  return score;
+}
+
+function weakHumanStrikeScore({
+  row,
+  col,
+  capture,
+  humanMoveReduction,
+  humanStrandedGain,
+  humanNetworkDistance,
+  humanTitanDistance,
+  botNetworkSupport,
+  lineStrength,
+  afterHumanMoveCount,
+  context,
+}) {
+  const weakness = weakHumanTargetScore(row, col, context);
+  if (weakness <= 0 && humanStrandedGain === 0 && humanMoveReduction <= 0) return 0;
+
+  let score = 0;
+  score += weakness * (capture ? 2.1 : 0.85);
+  score += humanStrandedGain * 230;
+  score += humanMoveReduction * 125;
+  score += botNetworkSupport * 45;
+  score += lineStrength * 55;
+  if (capture) score += 240;
+  if (afterHumanMoveCount < PLACEMENTS_PER_TURN) score += 520;
+  if (humanNetworkDistance <= 2) score += 130;
+  if (humanTitanDistance <= 2 && !capture && humanStrandedGain === 0) score -= 180;
+  if (context.underAttack && (capture || humanStrandedGain > 0 || humanMoveReduction > 0)) score += 120;
 
   return score;
 }
