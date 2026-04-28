@@ -98,6 +98,8 @@ const themeSelect = document.querySelector("#themeSelect");
 const roomInput = document.querySelector("#roomInput");
 const onlineBtn = document.querySelector("#onlineBtn");
 const onlineStatus = document.querySelector("#onlineStatus");
+const roomsList = document.querySelector("#roomsList");
+const refreshRoomsBtn = document.querySelector("#refreshRoomsBtn");
 const youName = document.querySelector("#youName");
 const youRating = document.querySelector("#youRating");
 const opponentName = document.querySelector("#opponentName");
@@ -119,6 +121,7 @@ let localOwner = HUMAN;
 let opponentOwner = BOT;
 let onlineEnabled = false;
 let socket = null;
+let roomsRefreshTimer = null;
 let gameOver = false;
 let moveNumber = 1;
 let placementsLeft = PLACEMENTS_PER_TURN;
@@ -1608,6 +1611,7 @@ function connectOnline() {
     opponentName.textContent = "Bot";
     opponentRating.textContent = String(account.botRating);
     onlineStatus.textContent = "Offline bot match";
+    refreshRooms();
     updateTurnStatus();
   });
 }
@@ -1615,6 +1619,7 @@ function connectOnline() {
 function handleOnlineMessage(message) {
   if (message.type === "full") {
     onlineStatus.textContent = "Room is full";
+    refreshRooms();
     return;
   }
   if (message.type === "assigned") {
@@ -1622,6 +1627,7 @@ function handleOnlineMessage(message) {
     localOwner = message.owner;
     opponentOwner = localOwner === HUMAN ? BOT : HUMAN;
     onlineStatus.textContent = localOwner === HUMAN ? "Online: blue side" : "Online: red side";
+    refreshRooms();
     applyProfiles(message.profiles || []);
     if (message.state) {
       loadState(message.state);
@@ -1635,11 +1641,13 @@ function handleOnlineMessage(message) {
   if (message.type === "peer") {
     applyProfiles([{ owner: message.owner, profile: message.profile }]);
     onlineStatus.textContent = "Opponent connected";
+    refreshRooms();
     if (localOwner === HUMAN) sendState("state");
     return;
   }
   if (message.type === "peer-left") {
     onlineStatus.textContent = "Opponent left";
+    refreshRooms();
     return;
   }
   if (message.type === "state" || message.type === "new-game") {
@@ -1670,6 +1678,59 @@ function applyProfiles(profiles) {
   youName.textContent = account.name || "Guest";
   youRating.textContent = String(account.rating);
   updatePlayerStrips();
+}
+
+async function refreshRooms(showLoading = false) {
+  if (showLoading) roomsList.replaceChildren(statusLine("Checking rooms..."));
+  try {
+    const response = await fetch("/rooms", { cache: "no-store" });
+    if (!response.ok) throw new Error("rooms unavailable");
+    const data = await response.json();
+    renderRooms(data.rooms || []);
+  } catch {
+    roomsList.replaceChildren(statusLine("Rooms show when the online server is running."));
+  }
+}
+
+function renderRooms(rooms) {
+  roomsList.replaceChildren();
+  if (rooms.length === 0) {
+    roomsList.append(statusLine("No rooms yet"));
+    return;
+  }
+  for (const room of rooms) {
+    roomsList.append(roomButton(room));
+  }
+}
+
+function roomButton(room) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "room-row";
+  button.disabled = !room.open;
+  button.title = room.open ? `Join ${room.name}` : `${room.name} is full`;
+
+  const name = document.createElement("span");
+  name.textContent = room.name;
+  const meta = document.createElement("small");
+  meta.textContent = room.players?.map((player) => `${player.name} ${player.rating}`).join(" / ") || "Waiting";
+  const count = document.createElement("strong");
+  count.textContent = `${room.peers}/2`;
+
+  const label = document.createElement("div");
+  label.append(name, meta);
+  button.append(label, count);
+  button.addEventListener("click", () => {
+    roomInput.value = room.name;
+    connectOnline();
+  });
+  return button;
+}
+
+function statusLine(text) {
+  const line = document.createElement("p");
+  line.textContent = text;
+  return line;
 }
 
 function updatePlayerStrips() {
@@ -1756,6 +1817,7 @@ googleProfileBtn.addEventListener("click", () => {
 screenSizeInput.addEventListener("input", () => updateScreenSize(screenSizeInput.value));
 themeSelect.addEventListener("change", () => updateTheme(themeSelect.value));
 onlineBtn.addEventListener("click", connectOnline);
+refreshRoomsBtn.addEventListener("click", () => refreshRooms(true));
 for (const button of panelTabButtons) {
   button.addEventListener("click", () => activatePanel(button.dataset.panel));
 }
@@ -1785,3 +1847,5 @@ for (const button of cameraButtons) {
 
 updateProfileUI();
 resetGame();
+refreshRooms(true);
+roomsRefreshTimer = window.setInterval(refreshRooms, 5000);

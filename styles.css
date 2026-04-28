@@ -338,6 +338,7 @@ h1 {
 .score-row,
 .online-card,
 .panel-card,
+.rooms-card,
 .profile-card,
 .stats-card,
 .rule-box,
@@ -372,14 +373,16 @@ h1 {
   padding: 14px;
 }
 
-.panel-card {
+.panel-card,
+.rooms-card {
   display: grid;
   gap: 10px;
   padding: 14px;
 }
 
 .online-card h2,
-.panel-card h2 {
+.panel-card h2,
+.rooms-card h2 {
   font-size: 1rem;
 }
 
@@ -407,6 +410,63 @@ h1 {
 .online-card p {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.rooms-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.rooms-head button {
+  min-height: 30px;
+  padding: 0 8px;
+}
+
+.rooms-list {
+  display: grid;
+  gap: 8px;
+}
+
+.rooms-list p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.room-row {
+  align-items: center;
+  background: var(--field);
+  border-color: var(--field-border);
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr auto;
+  min-height: 42px;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.room-row span {
+  color: var(--ink);
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-row small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.room-row strong {
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.room-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .profile-card,

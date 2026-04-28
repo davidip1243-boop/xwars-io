@@ -16,6 +16,10 @@ const MIME = {
 
 const server = http.createServer((req, res) => {
   const urlPath = req.url === "/" ? "/index.html" : decodeURIComponent(req.url.split("?")[0]);
+  if (urlPath === "/rooms") {
+    writeJson(res, { rooms: getRoomList() });
+    return;
+  }
   const filePath = path.normalize(path.join(ROOT, urlPath));
   if (!filePath.startsWith(ROOT)) {
     res.writeHead(403);
@@ -32,6 +36,14 @@ const server = http.createServer((req, res) => {
     res.end(data);
   });
 });
+
+function writeJson(res, data) {
+  res.writeHead(200, {
+    "Cache-Control": "no-store",
+    "Content-Type": "application/json; charset=utf-8",
+  });
+  res.end(JSON.stringify(data));
+}
 
 server.on("upgrade", (req, socket) => {
   if (req.url !== "/ws") {
@@ -112,6 +124,27 @@ function leaveRoom(socket) {
   broadcast(socket.room, socket, { type: "peer-left", peers: room.clients.length });
   if (room.clients.length === 0) rooms.delete(socket.room);
   socket.room = null;
+}
+
+function getRoomList() {
+  const list = [];
+  for (const [name, room] of rooms.entries()) {
+    room.clients = room.clients.filter((client) => !client.destroyed);
+    if (room.clients.length === 0) {
+      rooms.delete(name);
+      continue;
+    }
+    list.push({
+      name,
+      peers: room.clients.length,
+      open: room.clients.length < 2,
+      players: room.clients.map((client) => ({
+        name: client.profile?.name || "Guest",
+        rating: client.profile?.rating || 1000,
+      })),
+    });
+  }
+  return list.sort((left, right) => left.name.localeCompare(right.name));
 }
 
 function broadcast(roomName, sender, data) {
