@@ -5,6 +5,7 @@
   "description": "Xwars paper-grid strategy game with local bot play and room-based WebSocket multiplayer.",
   "main": "server.js",
   "scripts": {
+    "build": "node build-static.js",
     "start": "node server.js",
     "check": "node --check game.js && node --check server.js"
   },
