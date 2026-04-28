@@ -331,6 +331,35 @@ h1 {
   color: var(--paper);
 }
 
+.panel-section-title {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(31, 41, 51, 0.08);
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 42px;
+  min-width: 0;
+  padding: 0 14px;
+}
+
+.panel-section-title span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.panel-section-title strong {
+  color: var(--ink);
+  font-size: 1rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .panel-page {
   display: grid;
   gap: 12px;

@@ -67,6 +67,7 @@ const newGameBtn = document.querySelector("#newGameBtn");
 const modeButtons = [...document.querySelectorAll(".mode-btn")];
 const panelTabButtons = [...document.querySelectorAll(".panel-tab-btn")];
 const panelPages = [...document.querySelectorAll(".panel-page")];
+const panelTitle = document.querySelector("#panelTitle");
 const cameraButtons = [...document.querySelectorAll(".camera-btn")];
 const cameraLabel = document.querySelector("#cameraLabel");
 const rulesText = document.querySelector("#rulesText");
@@ -1290,6 +1291,8 @@ function updateModeButtons() {
 }
 
 function activatePanel(name) {
+  const selectedButton = panelTabButtons.find((button) => button.dataset.panel === name);
+  panelTitle.textContent = selectedButton?.textContent || "Lobby";
   for (const button of panelTabButtons) {
     const isActive = button.dataset.panel === name;
     button.classList.toggle("active", isActive);
