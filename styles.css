@@ -301,6 +301,7 @@ h1 {
 .panel {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .panel-tabs {
@@ -317,8 +318,12 @@ h1 {
 .panel-tab-btn {
   border-color: transparent;
   font-size: 0.82rem;
+  min-width: 0;
   min-height: 34px;
+  overflow: hidden;
   padding: 0 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .panel-tab-btn.active {
@@ -329,6 +334,7 @@ h1 {
 .panel-page {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .panel-page[hidden] {
@@ -377,6 +383,7 @@ h1 {
 .rooms-card {
   display: grid;
   gap: 10px;
+  min-width: 0;
   padding: 14px;
 }
 
@@ -417,16 +424,23 @@ h1 {
   display: flex;
   gap: 8px;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .rooms-head button {
+  flex: 0 0 auto;
   min-height: 30px;
   padding: 0 8px;
+}
+
+.rooms-head h2 {
+  min-width: 0;
 }
 
 .rooms-list {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .rooms-list p {
@@ -440,10 +454,13 @@ h1 {
   border-color: var(--field-border);
   display: grid;
   gap: 4px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 42px;
+  min-width: 0;
+  overflow: hidden;
   padding: 6px 10px;
   text-align: left;
+  width: 100%;
 }
 
 .room-row span {
@@ -453,14 +470,24 @@ h1 {
   text-overflow: ellipsis;
 }
 
+.room-row div {
+  display: grid;
+  min-width: 0;
+}
+
 .room-row small {
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .room-row strong {
   color: var(--ink);
+  justify-self: end;
   font-size: 0.82rem;
 }
 
