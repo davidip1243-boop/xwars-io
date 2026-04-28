@@ -14,6 +14,7 @@ const BOT_CANDIDATE_LIMIT = 24;
 const THREAT_SAMPLE_LIMIT = 8;
 const BOT_BRANCH_AFTER = 6;
 const BOT_BRANCH_UNTIL = 14;
+const MULTI_ROUTE_TURN_LIMIT = 3;
 const DEFAULT_PROFILE = {
   samples: 0,
   trap: 0,
@@ -218,7 +219,7 @@ function makeMove(row, col, owner, shouldSend = true) {
   if (owner === localOwner) learnFromHumanMove(row, col, capture, features);
   board[row][col] = { kind: capture ? "titan" : "x", owner };
   lastFocus[owner] = { row, col };
-  moveHistory[owner].push({ row, col, capture, features });
+  moveHistory[owner].push({ row, col, capture, features, ...moveRouteInfo(owner, row, col) });
   if (owner === localOwner) {
     cameraFocus = owner === localOwner ? "your side" : "opponent side";
     setCameraCenter(row, col);
@@ -324,10 +325,19 @@ function createBotContext() {
     humanTitanCells,
     titanPressureAtBotBase: botBase ? distanceToCells(botBase.row, botBase.col, humanTitanCells) <= 5 : false,
     recentStructureHit: recentStructureHit(),
+    underAttack: botUnderAttack({ botConnectedCount, humanMoves, humanTitanCells, botBase }),
     humanFrontCount: attackFrontCount(HUMAN, humanNetworkCells),
     beforeBotFrontCount: attackFrontCount(BOT, botNetworkCells),
     botPieceCount: countNetworkPieces(BOT),
   };
+}
+
+function botUnderAttack({ botConnectedCount, humanMoves, humanTitanCells, botBase }) {
+  const stranded = countNetworkPieces(BOT) - botConnectedCount;
+  if (stranded > 0) return true;
+  if (recentStructureHit()) return true;
+  if (botBase && distanceToCells(botBase.row, botBase.col, humanTitanCells) <= 5) return true;
+  return bestOpponentThreat(HUMAN, humanMoves) >= 520;
 }
 
 function roughBotMoveScore({ row, col }, context) {
@@ -342,6 +352,7 @@ function roughBotMoveScore({ row, col }, context) {
   let score = support * 20 + lineStrength * 24 + pressure * 1.6;
   score += singleStemScore(row, col, support, context) * 0.75;
   score += openingBranchScore(row, col, support, context) * 0.6;
+  score += multiRouteScore(row, col, support, context) * 0.7;
   score += attackEverywhereRoughScore({ humanDistance, humanFrontierPressure, support, context });
   score += homeBaseTrapRoughScore({ row, col, humanTitanDistance: titanDistance, humanMoveReduction: humanFrontierPressure, capture, context });
   score += structureHitResponseRoughScore({ row, col, humanDistance, humanMoveReduction: humanFrontierPressure, capture, context });
@@ -399,6 +410,7 @@ function scoreBotMove({ row, col }, context) {
   const lineStrength = botLineStrength(row, col);
   const singleStem = singleStemScore(row, col, botNetworkSupport, context);
   const openingBranch = openingBranchScore(row, col, botNetworkSupport, context);
+  const multiRoute = multiRouteScore(row, col, botNetworkSupport, context);
   const humanFrontierPressure = countAdjacentHumanLegalMoves(row, col, context.beforeHumanMoves);
 
   let score = 0;
@@ -446,6 +458,7 @@ function scoreBotMove({ row, col }, context) {
   score += lineStrength * 30;
   score += singleStem;
   score += openingBranch;
+  score += multiRoute;
   score += titanAvoidanceScore({
     humanTitanDistance,
     humanMoveReduction,
@@ -670,6 +683,7 @@ function singleStemScore(row, col, support, context) {
 
 function openingBranchScore(row, col, support, context) {
   if (context.botPieceCount < BOT_BRANCH_AFTER || context.botPieceCount > BOT_BRANCH_UNTIL) return 0;
+  if (context.underAttack) return 0;
   if (context.botStrandedCount > 0) return 0;
   if (distanceToCells(row, col, context.humanTitanCells) <= 4) return -140;
 
@@ -700,6 +714,85 @@ function openingBranchScore(row, col, support, context) {
   if (context.botPieceCount > 5 && distance(row, col, base.row, base.col) <= 2) score -= 180;
 
   return score;
+}
+
+function multiRouteScore(row, col, support, context) {
+  if (context.botPieceCount < BOT_BRANCH_AFTER || context.botPieceCount > BOT_BRANCH_UNTIL) return 0;
+  if (context.underAttack) return 0;
+  if (context.botStrandedCount > 0) return 0;
+  if (distanceToCells(row, col, context.humanTitanCells) <= 4) return 0;
+
+  const routeIndex = routeIndexThisTurn();
+  if (routeIndex >= MULTI_ROUTE_TURN_LIMIT) return 0;
+
+  const anchors = botAnchorsFor(row, col);
+  if (anchors.length === 0) return 0;
+
+  const usedAnchors = anchorsUsedThisTurn();
+  const freshAnchor = anchors.some((anchor) => !usedAnchors.has(key(anchor.row, anchor.col)));
+  const routeDirection = routeDirectionFor(row, col, anchors);
+  const usedDirections = directionsUsedThisTurn();
+  const freshDirection = !usedDirections.has(routeDirection);
+
+  let score = 0;
+  if (support === 1) score += 150;
+  if (support > 1) score -= (support - 1) * 45;
+  if (freshAnchor) score += 190;
+  if (freshDirection) score += 150;
+  if (!freshAnchor && !freshDirection) score -= 210;
+  if (routeIndex === 0) score += 80;
+  if (routeIndex === 1 && freshDirection) score += 150;
+  if (routeIndex === 2 && freshDirection) score += 120;
+
+  return score;
+}
+
+function botAnchorsFor(row, col) {
+  return neighbors(row, col)
+    .filter(([r, c]) => isNetworkCell(board[r][c], BOT))
+    .map(([anchorRow, anchorCol]) => ({ row: anchorRow, col: anchorCol }));
+}
+
+function moveRouteInfo(owner, row, col) {
+  const anchors = neighbors(row, col)
+    .filter(([r, c]) => isNetworkCell(board[r][c], owner))
+    .map(([anchorRow, anchorCol]) => ({ row: anchorRow, col: anchorCol }));
+  if (anchors.length === 0) return {};
+
+  const base = findBase(owner);
+  const anchor = base
+    ? anchors.reduce((best, current) =>
+        distance(current.row, current.col, base.row, base.col) < distance(best.row, best.col, base.row, base.col) ? current : best,
+      )
+    : anchors[0];
+
+  return {
+    anchorRow: anchor.row,
+    anchorCol: anchor.col,
+    routeDirection: directionBetween(anchor, { row, col }),
+  };
+}
+
+function routeIndexThisTurn() {
+  return (PLACEMENTS_PER_TURN - placementsLeft) % PLACEMENTS_PER_TURN;
+}
+
+function anchorsUsedThisTurn() {
+  return new Set(moveHistory[BOT].slice(-routeIndexThisTurn()).map((move) => key(move.anchorRow ?? move.row, move.anchorCol ?? move.col)));
+}
+
+function directionsUsedThisTurn() {
+  return new Set(moveHistory[BOT].slice(-routeIndexThisTurn()).map((move) => move.routeDirection).filter(Boolean));
+}
+
+function routeDirectionFor(row, col, anchors) {
+  const base = findBase(BOT);
+  if (!base) return "0,0";
+  const anchor = anchors.reduce((best, current) => {
+    if (!best) return current;
+    return distance(current.row, current.col, base.row, base.col) < distance(best.row, best.col, base.row, base.col) ? current : best;
+  }, null);
+  return directionBetween(anchor || base, { row, col });
 }
 
 function directionBetween(from, to) {
