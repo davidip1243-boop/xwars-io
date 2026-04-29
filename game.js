@@ -1378,7 +1378,7 @@ function classForCell(cell, legal) {
 }
 
 function textForCell(cell) {
-  if (cell.kind === "base") return "BASE";
+  if (cell.kind === "base") return cameraSize >= 20 ? "B" : "BASE";
   if (cell.kind === "x") return "";
   if (cell.kind === "titan") return "";
   if (cell.kind === WALL) return "";
