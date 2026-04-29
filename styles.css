@@ -824,6 +824,22 @@ select {
   margin-top: 6px;
 }
 
+.move-log strong,
+.move-analysis {
+  display: block;
+}
+
+.move-log strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.move-analysis {
+  font-size: 0.82rem;
+  line-height: 1.28;
+  margin-top: 2px;
+}
+
 .victory-overlay {
   align-items: center;
   background: rgba(31, 41, 51, 0.42);

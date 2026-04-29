@@ -249,7 +249,7 @@ function makeMove(row, col, owner, shouldSend = true) {
     setCameraCenter(row, col);
     turnCameraJumpUsed = true;
   }
-  logMove(owner, row, col, capture);
+  logMove(owner, row, col, capture, features);
   placementsLeft -= 1;
   if (onlineEnabled && shouldSend) sendMove(row, col, owner);
 
@@ -1451,12 +1451,49 @@ function countPieces() {
   );
 }
 
-function logMove(owner, row, col, capture) {
+function logMove(owner, row, col, capture, features) {
   const item = document.createElement("li");
   const name = owner === HUMAN ? "You" : "Bot";
-  item.textContent = `${moveNumber}. ${name} ${capture ? "made a titan at" : "placed X at"} ${row + 1}, ${col + 1}`;
+  const summary = document.createElement("strong");
+  summary.textContent = `${moveNumber}. ${name} ${capture ? "made a titan at" : "placed X at"} ${row + 1}, ${col + 1}`;
+  const analysis = document.createElement("span");
+  analysis.className = "move-analysis";
+  analysis.textContent = analyzeMove(owner, row, col, capture, features);
+  item.append(summary, analysis);
   moveLog.prepend(item);
   moveNumber += 1;
+}
+
+function analyzeMove(owner, row, col, capture, features) {
+  const opponent = owner === HUMAN ? BOT : HUMAN;
+  const ownerBase = findBase(owner);
+  const opponentNetwork = collectNetworkCells(opponent);
+  const opponentDistance = distanceToCells(row, col, opponentNetwork);
+  const homeDistance = ownerBase ? chebyshevDistance(row, col, ownerBase.row, ownerBase.col) : Infinity;
+  const notes = [];
+
+  if (capture) notes.push("creates a titan and removes a normal enemy X");
+  if (features.finish > 0) notes.push("dangerous: can leave opponent below 5 moves");
+  if (features.trap >= 0.35) notes.push("cuts down opponent options");
+  if (features.reconnect >= 0.2) notes.push("reconnects loose structure");
+  if (features.attackSpread >= 0.45) notes.push("opens another attack route");
+  if (features.mobility >= 0.35) notes.push("keeps future moves open");
+  if (opponentDistance <= 2 && !capture) notes.push("pressures the enemy line");
+
+  if (owner === BOT && homeDistance <= 2 && features.reconnect < 0.2 && features.trap < 0.25 && !capture) {
+    notes.push("warning: too close to its own base without a real counter");
+  }
+
+  if (owner === HUMAN && opponentDistance <= 3 && (capture || features.trap >= 0.25 || features.attackSpread >= 0.35)) {
+    notes.push("your style: active cut-and-spread pressure");
+  }
+
+  if (notes.length === 0) {
+    if (homeDistance <= 3) return "Analysis: quiet support move near home; watch that it does not become wasted base-covering.";
+    return "Analysis: builds position, but no immediate cut or capture.";
+  }
+
+  return `Analysis: ${notes.slice(0, 3).join("; ")}.`;
 }
 
 function setStatus(message) {
