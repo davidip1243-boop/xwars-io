@@ -1337,8 +1337,8 @@ function findBase(owner) {
 function render() {
   const legal = new Set(legalMoves(current).map(({ row, col }) => key(row, col)));
   const renderSize = cameraRenderSize();
-  const startRow = Math.min(Math.floor(cameraRowExact), size - renderSize);
-  const startCol = Math.min(Math.floor(cameraColExact), size - renderSize);
+  const startRow = clamp(Math.floor(cameraRowExact), 0, size - renderSize);
+  const startCol = clamp(Math.floor(cameraColExact), 0, size - renderSize);
   const offsetRow = cameraRowExact - startRow;
   const offsetCol = cameraColExact - startCol;
   boardEl.innerHTML = "";
@@ -1569,7 +1569,7 @@ function updateCameraLabel() {
 }
 
 function cameraRenderSize() {
-  return Math.min(size, cameraSize + 1);
+  return Math.min(size, cameraSize);
 }
 
 function clampCameraSize(value) {
