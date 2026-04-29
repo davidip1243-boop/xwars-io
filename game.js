@@ -835,6 +835,7 @@ function singleStemScore(row, col, support, context) {
   if (support === 1) score += 90;
   if (support > 1) score -= (support - 1) * 120;
   if (distance(row, col, base.row, base.col) <= 2 && context.botPieceCount > 3) score -= 160;
+  score += diagonalRouteScore(row, col, context);
 
   if (lastMove) {
     const currentDistance = distance(row, col, base.row, base.col);
@@ -845,6 +846,7 @@ function singleStemScore(row, col, support, context) {
       Math.sign(row - lastMove.row) === Math.sign(lastMove.row - base.row) &&
       Math.sign(col - lastMove.col) === Math.sign(lastMove.col - base.col);
     if (sameDirection) score += 55;
+    if (!isDiagonalDirection(directionBetween(lastMove, { row, col })) && sameDirection) score -= 150;
   }
 
   return score;
@@ -874,12 +876,14 @@ function openingBranchScore(row, col, support, context) {
   let score = 0;
   if (support === 1) score += 120;
   if (support > 1) score -= (support - 1) * 35;
+  score += diagonalRouteScore(row, col, context) * 1.25;
   if (currentDistance >= lastDistance - 1) score += 55;
   if (leavesLastMoveSideways) score += 170;
   if (olderAnchor) score += 75;
   if (context.botPieceCount <= 10 && olderAnchor) score += 180;
   if (context.botPieceCount >= BOT_BRANCH_AFTER + 1 && context.botPieceCount <= 10 && !olderAnchor) score -= 90;
   if (chebyshevDistance(row, col, lastMove.row, lastMove.col) === 1 && candidateFromLast === stemDirection) score -= 160;
+  if (candidateFromLast === stemDirection && !isDiagonalDirection(candidateFromLast)) score -= 180;
   if (context.botPieceCount > 5 && distance(row, col, base.row, base.col) <= 2) score -= 180;
 
   return score;
@@ -906,6 +910,7 @@ function multiRouteScore(row, col, support, context) {
   let score = 0;
   if (support === 1) score += 150;
   if (support > 1) score -= (support - 1) * 45;
+  score += diagonalRouteScore(row, col, context) * 1.1;
   if (freshAnchor) score += 190;
   if (freshDirection) score += 150;
   if (!freshAnchor && !freshDirection) score -= 210;
@@ -914,6 +919,44 @@ function multiRouteScore(row, col, support, context) {
   if (routeIndex === 2 && freshDirection) score += 120;
 
   return score;
+}
+
+function diagonalRouteScore(row, col, context) {
+  if (context.underAttack) return 0;
+
+  const anchors = botAnchorsFor(row, col);
+  if (anchors.length === 0) return 0;
+  const base = context.botBase;
+  if (!base) return 0;
+
+  const bestAnchor = anchors.reduce((best, current) =>
+    distance(current.row, current.col, base.row, base.col) < distance(best.row, best.col, base.row, base.col) ? current : best,
+  );
+  const direction = directionBetween(bestAnchor, { row, col });
+  const lastMove = moveHistory[BOT][moveHistory[BOT].length - 1];
+  const previousDirection = lastMove?.routeDirection || directionBetween(base, lastMove || bestAnchor);
+  const diagonal = isDiagonalDirection(direction);
+  const straight = isStraightDirection(direction);
+  const continuesStraightRow = straight && direction === previousDirection;
+
+  let score = 0;
+  if (diagonal) score += 180;
+  if (straight) score -= 80;
+  if (continuesStraightRow) score -= 220;
+  if (lastMove && direction !== previousDirection) score += 90;
+  if (lastMove && chebyshevDistance(row, col, lastMove.row, lastMove.col) === 1 && diagonal) score += 75;
+
+  return score;
+}
+
+function isDiagonalDirection(direction) {
+  const [rowStep, colStep] = direction.split(",").map(Number);
+  return rowStep !== 0 && colStep !== 0;
+}
+
+function isStraightDirection(direction) {
+  const [rowStep, colStep] = direction.split(",").map(Number);
+  return (rowStep === 0 && colStep !== 0) || (rowStep !== 0 && colStep === 0);
 }
 
 function botAnchorsFor(row, col) {
