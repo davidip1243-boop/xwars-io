@@ -323,14 +323,8 @@ body.theme-paper .cell.base-bot {
   background: var(--cell-hover);
 }
 
-.cell.legal::after {
-  border: 3px solid var(--legal);
-  border-radius: 2px;
-  content: "";
-  height: 28%;
-  opacity: 0.75;
-  position: absolute;
-  width: 28%;
+.cell.legal {
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--legal) 78%, transparent);
 }
 
 .cell.base-player,
@@ -356,6 +350,41 @@ body.theme-paper .cell.base-bot {
 .cell.x-bot {
   background: var(--bot-soft);
   color: var(--bot);
+}
+
+.cell.x-player::before,
+.cell.x-player::after,
+.cell.x-bot::before,
+.cell.x-bot::after {
+  background: currentColor;
+  border-radius: 999px;
+  content: "";
+  height: 72%;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform-origin: center;
+  width: clamp(3px, calc(17vmin / var(--camera-size, 9)), 12px);
+}
+
+.cell.x-player::before,
+.cell.x-bot::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cell.x-player::after,
+.cell.x-bot::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+body.theme-paper .cell.x-player::before,
+body.theme-paper .cell.x-bot::before {
+  transform: translate(-50%, -50%) rotate(42deg);
+}
+
+body.theme-paper .cell.x-player::after,
+body.theme-paper .cell.x-bot::after {
+  transform: translate(-50%, -50%) rotate(-48deg);
 }
 
 .cell.titan-player,

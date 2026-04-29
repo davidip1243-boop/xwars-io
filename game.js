@@ -1379,7 +1379,7 @@ function classForCell(cell, legal) {
 
 function textForCell(cell) {
   if (cell.kind === "base") return "BASE";
-  if (cell.kind === "x") return "X";
+  if (cell.kind === "x") return "";
   if (cell.kind === "titan") return "";
   if (cell.kind === WALL) return "";
   return "";
