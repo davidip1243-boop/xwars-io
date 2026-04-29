@@ -4,7 +4,7 @@ const HUMAN = "player";
 const BOT = "bot";
 const PLACEMENTS_PER_TURN = 5;
 const MIN_CAMERA_SIZE = 7;
-const MAX_CAMERA_SIZE = 20;
+const MAX_CAMERA_SIZE = 50;
 const SCROLL_SPEED = 0.008;
 const BASE_BUFFER = 5;
 const BASE_OFFSET = 4;
@@ -150,6 +150,7 @@ function resetGame() {
   const config = MODES[mode];
   size = config.size;
   cameraSize = clampCameraSize(account.screenSize);
+  updateScreenSizeControl();
   updateCameraCss();
   board = Array.from({ length: size }, () => Array.from({ length: size }, newCell));
   const humanBase = basePosition(HUMAN);
@@ -1575,6 +1576,13 @@ function clampCameraSize(value) {
   return clamp(Number(value) || 9, MIN_CAMERA_SIZE, Math.min(MAX_CAMERA_SIZE, size));
 }
 
+function updateScreenSizeControl() {
+  const maxSize = Math.min(MAX_CAMERA_SIZE, size);
+  screenSizeInput.max = String(maxSize);
+  screenSizeInput.value = String(clampCameraSize(account.screenSize));
+  screenSizeValue.textContent = String(clampCameraSize(account.screenSize));
+}
+
 function updateCameraCss() {
   boardEl.style.setProperty("--camera-render-size", cameraRenderSize());
   boardEl.style.setProperty("--camera-size", cameraSize);
@@ -1774,8 +1782,7 @@ function updateProfileUI() {
   statsGames.textContent = String(gamesPlayed);
   statsWinRate.textContent = `${winRate}%`;
   statsBotRating.textContent = String(account.botRating);
-  screenSizeInput.value = String(clampCameraSize(account.screenSize));
-  screenSizeValue.textContent = String(clampCameraSize(account.screenSize));
+  updateScreenSizeControl();
   themeSelect.value = account.theme === "dark" ? "dark" : "light";
   onlineServerInput.value = onlineServer;
   if (!onlineEnabled) {
@@ -2046,6 +2053,7 @@ function loadState(state) {
   moveHistory = state.moveHistory;
   gameOver = state.gameOver;
   cameraSize = clampCameraSize(account.screenSize);
+  updateScreenSizeControl();
   updateCameraCss();
   rulesText.textContent = `${MODES[mode].rules} No legal move means defeat.`;
   updateModeButtons();
