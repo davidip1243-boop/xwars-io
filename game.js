@@ -1507,10 +1507,21 @@ function activatePanel(name) {
 }
 
 function focusOwnerCamera(owner) {
+  cameraSize = clampCameraSize(account.screenSize);
+  updateCameraCss();
   const focus = lastFocus[owner] || findBase(owner);
   if (!focus) return;
   cameraFocus = owner === localOwner ? "your side" : "opponent side";
   setCameraCenter(focus.row, focus.col);
+}
+
+function focusAllCamera() {
+  cameraFocus = "full board";
+  cameraSize = size;
+  cameraRowExact = 0;
+  cameraColExact = 0;
+  syncCameraGridPosition();
+  updateCameraCss();
 }
 
 function setCameraCenter(row, col) {
@@ -1521,6 +1532,8 @@ function setCameraCenter(row, col) {
 
 function moveCamera(rowDelta, colDelta) {
   cameraFocus = "free look";
+  cameraSize = clampCameraSize(cameraSize);
+  updateCameraCss();
   cameraRowExact = clamp(cameraRowExact + rowDelta, 0, size - cameraSize);
   cameraColExact = clamp(cameraColExact + colDelta, 0, size - cameraSize);
   syncCameraGridPosition();
@@ -1544,13 +1557,13 @@ function syncCameraGridPosition() {
 function updateCameraLabel() {
   const displayRow = Math.floor(cameraRowExact);
   const displayCol = Math.floor(cameraColExact);
-  const rowEnd = displayRow + cameraSize;
-  const colEnd = displayCol + cameraSize;
+  const rowEnd = Math.min(size, displayRow + cameraSize);
+  const colEnd = Math.min(size, displayCol + cameraSize);
   cameraLabel.textContent = `Camera: ${cameraFocus} rows ${displayRow + 1}-${rowEnd}, cols ${displayCol + 1}-${colEnd}`;
 }
 
 function cameraRenderSize() {
-  return cameraSize + 1;
+  return Math.min(size, cameraSize + 1);
 }
 
 function clampCameraSize(value) {
@@ -2093,6 +2106,10 @@ for (const button of cameraButtons) {
     }
     if (action === "bot") {
       focusOwnerCamera(BOT);
+      render();
+    }
+    if (action === "all") {
+      focusAllCamera();
       render();
     }
   });

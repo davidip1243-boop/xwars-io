@@ -55,6 +55,7 @@ body.theme-dark {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow: hidden;
   background:
     linear-gradient(var(--grid-glow), var(--grid-glow)),
     repeating-linear-gradient(0deg, transparent 0 31px, var(--grid-line) 31px 32px),
@@ -81,9 +82,13 @@ button:hover {
 }
 
 .shell {
-  width: min(1180px, calc(100vw - 28px));
-  margin: 0 auto;
-  padding: 22px 0;
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  margin: 0;
+  padding: 10px;
+  width: 100vw;
 }
 
 .topbar {
@@ -91,7 +96,7 @@ button:hover {
   display: flex;
   gap: 18px;
   justify-content: space-between;
-  margin-bottom: 18px;
+  min-height: 0;
 }
 
 h1,
@@ -101,7 +106,7 @@ p {
 }
 
 h1 {
-  font-size: clamp(2rem, 4vw, 4rem);
+  font-size: clamp(1.45rem, 3vw, 2.9rem);
   letter-spacing: 0;
   line-height: 0.95;
 }
@@ -157,7 +162,8 @@ h1 {
   align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
+  min-height: 0;
 }
 
 .board-wrap {
@@ -165,6 +171,10 @@ h1 {
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   box-shadow: var(--shadow);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
   padding: clamp(8px, 2vw, 18px);
 }
 
@@ -174,7 +184,7 @@ h1 {
   gap: 12px;
   justify-content: space-between;
   margin: 0 auto 12px;
-  max-width: min(620px, 100%);
+  min-width: 0;
 }
 
 #cameraLabel {
@@ -201,13 +211,17 @@ h1 {
 }
 
 .board-viewport {
+  align-self: center;
   aspect-ratio: 1;
   cursor: grab;
+  justify-self: center;
   margin: 0 auto;
-  max-height: calc(100vh - 145px);
-  max-width: min(620px, 100%);
+  max-height: 100%;
+  max-width: 100%;
+  min-height: 0;
   overflow: hidden;
-  width: 100%;
+  height: auto;
+  width: min(100%, calc(100vh - 190px));
 }
 
 .board {
@@ -227,7 +241,7 @@ h1 {
   border-radius: 0;
   color: var(--ink);
   display: flex;
-  font-size: clamp(1.05rem, 4.8vw, 2.2rem);
+  font-size: clamp(0.42rem, calc(56vmin / var(--camera-size, 9)), 2.2rem);
   font-weight: 900;
   justify-content: center;
   min-height: 0;
@@ -301,7 +315,10 @@ h1 {
 .panel {
   display: grid;
   gap: 12px;
+  align-content: start;
+  max-height: 100%;
   min-width: 0;
+  overflow: auto;
 }
 
 .panel-tabs {
@@ -847,6 +864,15 @@ select {
 }
 
 @media (max-width: 850px) {
+  body {
+    overflow: auto;
+  }
+
+  .shell {
+    height: auto;
+    min-height: 100vh;
+  }
+
   .topbar {
     align-items: flex-start;
     flex-direction: column;
@@ -860,8 +886,13 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .board {
-    max-height: none;
+  .board-wrap {
+    min-height: min(720px, calc(100vh - 20px));
+  }
+
+  .board-viewport {
+    height: auto;
+    width: 100%;
   }
 
   .camera-bar {
@@ -881,7 +912,7 @@ select {
 
 @media (max-width: 520px) {
   .shell {
-    width: min(100vw - 16px, 1180px);
+    width: 100vw;
     padding-top: 10px;
   }
 
@@ -890,7 +921,7 @@ select {
   }
 
   .cell {
-    font-size: clamp(0.95rem, 8vw, 1.5rem);
+    font-size: clamp(0.38rem, calc(64vmin / var(--camera-size, 9)), 1.5rem);
   }
 
   #minimap {
