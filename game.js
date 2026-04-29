@@ -7,6 +7,7 @@ const MIN_CAMERA_SIZE = 7;
 const MAX_CAMERA_SIZE = 20;
 const SCROLL_SPEED = 0.008;
 const BASE_BUFFER = 5;
+const BASE_OFFSET = 4;
 const WALL_GAP = 3;
 const LEARNING_KEY = "xwars-player-profile-v1";
 const ACCOUNT_KEY = "xwars-account-v1";
@@ -151,11 +152,13 @@ function resetGame() {
   cameraSize = clampCameraSize(account.screenSize);
   updateCameraCss();
   board = Array.from({ length: size }, () => Array.from({ length: size }, newCell));
-  board[1][1] = { kind: "base", owner: HUMAN };
-  board[size - 2][size - 2] = { kind: "base", owner: BOT };
+  const humanBase = basePosition(HUMAN);
+  const botBase = basePosition(BOT);
+  board[humanBase.row][humanBase.col] = { kind: "base", owner: HUMAN };
+  board[botBase.row][botBase.col] = { kind: "base", owner: BOT };
   lastFocus = {
-    [HUMAN]: { row: 1, col: 1 },
-    [BOT]: { row: size - 2, col: size - 2 },
+    [HUMAN]: humanBase,
+    [BOT]: botBase,
   };
   moveHistory = {
     [HUMAN]: [],
@@ -177,6 +180,11 @@ function resetGame() {
   render();
   updateTurnStatus();
   if (onlineEnabled && localOwner === HUMAN) sendState("new-game");
+}
+
+function basePosition(owner) {
+  const edge = owner === HUMAN ? BASE_OFFSET : size - 1 - BASE_OFFSET;
+  return { row: edge, col: edge };
 }
 
 function inBounds(row, col) {
@@ -1457,10 +1465,7 @@ function renderVictoryBurst(owner) {
 
 function spawnWalls(targetCount) {
   const walls = [];
-  const bases = [
-    { row: 1, col: 1 },
-    { row: size - 2, col: size - 2 },
-  ];
+  const bases = [basePosition(HUMAN), basePosition(BOT)];
   let attempts = 0;
 
   while (walls.length < targetCount && attempts < targetCount * 220) {
