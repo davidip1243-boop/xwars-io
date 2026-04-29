@@ -161,8 +161,8 @@ h1 {
 .game-layout {
   align-items: start;
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 230px;
   min-height: 0;
 }
 
@@ -175,7 +175,7 @@ h1 {
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100%;
   min-height: 0;
-  padding: clamp(8px, 2vw, 18px);
+  padding: 6px;
 }
 
 .camera-bar {
@@ -221,7 +221,7 @@ h1 {
   min-height: 0;
   overflow: hidden;
   height: auto;
-  width: min(100%, calc(100vh - 190px));
+  width: min(100%, calc(100vh - 120px));
 }
 
 .board {
