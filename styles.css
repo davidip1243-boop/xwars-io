@@ -271,7 +271,7 @@ h1 {
   min-height: 0;
   overflow: hidden;
   height: auto;
-  width: min(100%, calc(100vh - 24px));
+  width: min(100%, calc(100vh - 112px));
 }
 
 .board {

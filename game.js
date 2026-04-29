@@ -455,7 +455,7 @@ function scoreBotMove({ row, col }, context) {
   if (reconnectGain >= PLACEMENTS_PER_TURN) score += 280;
   score += humanMoveReduction * 55;
   score += humanFrontierPressure * 16;
-  score += basePressure * (context.botStrandedCount > 0 ? 1.5 : 4);
+  score += basePressure * (context.underAttack ? 1.2 : 4);
   score += botNetworkSupport * 7;
   score += ownMobilityChange * 2;
   score += threatChange * 0.65;
@@ -494,6 +494,18 @@ function scoreBotMove({ row, col }, context) {
     threatChange,
     capture,
     hitDistance,
+    humanNetworkDistance,
+    botNetworkSupport,
+    lineStrength,
+    context,
+  });
+  score += attackedAdvanceScore({
+    row,
+    col,
+    capture,
+    humanMoveReduction,
+    reconnectGain,
+    threatChange,
     humanNetworkDistance,
     botNetworkSupport,
     lineStrength,
@@ -585,6 +597,42 @@ function urgentReconnectScore({
   if (counterCut) score += 750 + humanMoveReduction * 180 + Math.max(0, threatChange) * 1.4;
   if (humanNetworkDistance <= 3 && counterCut) score += 360;
   score += botNetworkSupport * 65 + lineStrength * 80;
+
+  return score;
+}
+
+function attackedAdvanceScore({
+  row,
+  col,
+  capture,
+  humanMoveReduction,
+  reconnectGain,
+  threatChange,
+  humanNetworkDistance,
+  botNetworkSupport,
+  lineStrength,
+  context,
+}) {
+  if (!context.underAttack || context.botStrandedCount > 0) return 0;
+  if (!context.botBase) return 0;
+
+  const homeDistance = chebyshevDistance(row, col, context.botBase.row, context.botBase.col);
+  const counterPush = capture || humanMoveReduction > 0 || threatChange > 40 || humanNetworkDistance <= 4;
+  let score = 0;
+
+  if (counterPush) {
+    score += 520;
+    score += humanMoveReduction * 150;
+    score += Math.max(0, threatChange) * 1.25;
+    score += Math.max(0, 5 - humanNetworkDistance) * 120;
+    score += botNetworkSupport * 35 + lineStrength * 45;
+    if (capture) score += 260;
+  }
+
+  if (homeDistance <= 2 && reconnectGain === 0 && !counterPush) score -= 1250;
+  if (homeDistance <= 3 && reconnectGain === 0 && !counterPush) score -= 650;
+  if (homeDistance <= 2 && counterPush && humanNetworkDistance > 4) score -= 420;
+  if (homeDistance >= 4 && counterPush) score += 180;
 
   return score;
 }
