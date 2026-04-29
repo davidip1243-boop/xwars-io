@@ -48,6 +48,31 @@ body.theme-dark {
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
 }
 
+body.theme-paper {
+  color-scheme: light;
+  --paper: #f4ecd8;
+  --ink: #2d2418;
+  --muted: #7d6d55;
+  --line: rgba(73, 53, 31, 0.34);
+  --player: #1f62aa;
+  --player-soft: rgba(31, 98, 170, 0.12);
+  --bot: #a93b2e;
+  --bot-soft: rgba(169, 59, 46, 0.12);
+  --titan: #342b20;
+  --legal: #427a38;
+  --button: #fff7e7;
+  --surface: rgba(255, 248, 232, 0.72);
+  --surface-strong: rgba(255, 248, 232, 0.9);
+  --field: #fffaf0;
+  --field-border: rgba(96, 72, 42, 0.42);
+  --panel-border: rgba(96, 72, 42, 0.26);
+  --grid-glow: rgba(255, 250, 238, 0.18);
+  --grid-line: rgba(90, 67, 40, 0.09);
+  --cell-bg: rgba(255, 252, 241, 0.46);
+  --cell-hover: rgba(255, 248, 225, 0.86);
+  --shadow: 0 14px 28px rgba(71, 52, 29, 0.16);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -63,6 +88,31 @@ body {
     var(--paper);
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body.theme-paper {
+  background:
+    linear-gradient(var(--grid-glow), var(--grid-glow)),
+    repeating-linear-gradient(0deg, transparent 0 23px, rgba(72, 54, 32, 0.08) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(72, 54, 32, 0.05) 23px 24px),
+    radial-gradient(circle at 15% 20%, rgba(116, 88, 50, 0.08), transparent 28%),
+    radial-gradient(circle at 80% 75%, rgba(116, 88, 50, 0.07), transparent 34%),
+    var(--paper);
+  font-family: "Bradley Hand", "Comic Sans MS", "Segoe Print", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body.theme-paper .board-wrap,
+body.theme-paper .panel-tabs,
+body.theme-paper .panel-section-title,
+body.theme-paper .score-row,
+body.theme-paper .online-card,
+body.theme-paper .panel-card,
+body.theme-paper .rooms-card,
+body.theme-paper .profile-card,
+body.theme-paper .stats-card,
+body.theme-paper .rule-box,
+body.theme-paper .move-log {
+  box-shadow: 0 8px 20px rgba(73, 53, 31, 0.12);
 }
 
 button {
@@ -248,6 +298,25 @@ h1 {
   min-width: 0;
   padding: 0;
   position: relative;
+}
+
+body.theme-paper .cell {
+  border-color: rgba(74, 55, 33, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+body.theme-paper .cell.x-player,
+body.theme-paper .cell.x-bot {
+  background: transparent;
+  font-family: "Bradley Hand", "Comic Sans MS", "Segoe Print", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 900;
+  text-shadow: 0.5px 0.5px 0 rgba(255, 255, 255, 0.35);
+}
+
+body.theme-paper .cell.base-player,
+body.theme-paper .cell.base-bot {
+  border-radius: 2px;
+  font-family: "Bradley Hand", "Comic Sans MS", "Segoe Print", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 .cell:hover {

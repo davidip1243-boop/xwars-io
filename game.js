@@ -1611,6 +1611,12 @@ function themeColors() {
       camera: "#e7edf5",
     };
   }
+  if (document.body.classList.contains("theme-paper")) {
+    return {
+      paper: "#f4ecd8",
+      camera: "#2d2418",
+    };
+  }
   return {
     paper: "#f8f5ee",
     camera: "#1f2933",
@@ -1783,7 +1789,7 @@ function updateProfileUI() {
   statsWinRate.textContent = `${winRate}%`;
   statsBotRating.textContent = String(account.botRating);
   updateScreenSizeControl();
-  themeSelect.value = account.theme === "dark" ? "dark" : "light";
+  themeSelect.value = ["dark", "paper"].includes(account.theme) ? account.theme : "light";
   onlineServerInput.value = onlineServer;
   if (!onlineEnabled) {
     opponentName.textContent = "Bot";
@@ -1827,7 +1833,7 @@ function updateScreenSize(value) {
 }
 
 function updateTheme(value) {
-  const theme = value === "dark" ? "dark" : "light";
+  const theme = ["dark", "paper"].includes(value) ? value : "light";
   account = {
     ...account,
     theme,
@@ -1840,6 +1846,7 @@ function updateTheme(value) {
 
 function applyTheme(theme) {
   document.body.classList.toggle("theme-dark", theme === "dark");
+  document.body.classList.toggle("theme-paper", theme === "paper");
 }
 
 async function hashPassword(password) {
