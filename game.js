@@ -297,13 +297,13 @@ function botMove() {
   }
 
   const botContext = createBotContext();
-  const candidates = moves
+  const rankedMoves = moves
     .map((move) => ({
       ...move,
       roughScore: roughBotMoveScore(move, botContext),
     }))
-    .sort((a, b) => b.roughScore - a.roughScore)
-    .slice(0, BOT_CANDIDATE_LIMIT);
+    .sort((a, b) => b.roughScore - a.roughScore);
+  const candidates = botContext.underAttack ? rankedMoves : rankedMoves.slice(0, BOT_CANDIDATE_LIMIT);
 
   const scored = candidates.map((move) => ({
     ...move,
@@ -426,6 +426,9 @@ function scoreBotMove({ row, col }, context) {
   const humanNetworkDistance = distanceToCells(row, col, context.humanNetworkCells);
   const humanTitanDistance = distanceToCells(row, col, context.humanTitanCells);
   const basePressure = context.humanBase ? (size * 2) - distance(row, col, context.humanBase.row, context.humanBase.col) : 0;
+  const hitDistance = context.recentStructureHit
+    ? chebyshevDistance(row, col, context.recentStructureHit.row, context.recentStructureHit.col)
+    : Infinity;
   const botNetworkSupport = neighbors(row, col).filter(([r, c]) => {
     const neighbor = board[r][c];
     return neighbor.owner === BOT && (neighbor.kind === "base" || neighbor.kind === "x" || neighbor.kind === "titan");
@@ -474,6 +477,17 @@ function scoreBotMove({ row, col }, context) {
     botNetworkSupport,
     lineStrength,
     capture,
+    context,
+  });
+  score += urgentReconnectScore({
+    reconnectGain,
+    humanMoveReduction,
+    threatChange,
+    capture,
+    hitDistance,
+    humanNetworkDistance,
+    botNetworkSupport,
+    lineStrength,
     context,
   });
   score += weakHumanStrikeScore({
@@ -526,6 +540,42 @@ function scoreBotMove({ row, col }, context) {
     const supportDiscount = botNetworkSupport * 20 + lineStrength * 30;
     score -= Math.max(45, 120 + baseDanger * 35 - supportDiscount);
   }
+
+  return score;
+}
+
+function urgentReconnectScore({
+  reconnectGain,
+  humanMoveReduction,
+  threatChange,
+  capture,
+  hitDistance,
+  humanNetworkDistance,
+  botNetworkSupport,
+  lineStrength,
+  context,
+}) {
+  if (!context.underAttack) return 0;
+
+  const counterCut = capture || humanMoveReduction > 0 || threatChange > 60;
+  let score = 0;
+
+  if (context.botStrandedCount > 0) {
+    if (reconnectGain > 0) score += 1600 + reconnectGain * 950;
+    if (reconnectGain >= context.botStrandedCount) score += 3200;
+    if (reconnectGain === 0 && !counterCut) score -= 4200;
+    if (reconnectGain === 0 && counterCut) score -= 900;
+  }
+
+  if (context.recentStructureHit) {
+    if (reconnectGain > 0) score += 850 + reconnectGain * 520;
+    if (hitDistance <= 2 && (reconnectGain > 0 || counterCut)) score += 500;
+    if (hitDistance > 4 && reconnectGain === 0 && !counterCut) score -= 1400;
+  }
+
+  if (counterCut) score += 750 + humanMoveReduction * 180 + Math.max(0, threatChange) * 1.4;
+  if (humanNetworkDistance <= 3 && counterCut) score += 360;
+  score += botNetworkSupport * 65 + lineStrength * 80;
 
   return score;
 }
@@ -702,6 +752,7 @@ function structureHitResponseRoughScore({ row, col, humanDistance, humanMoveRedu
 }
 
 function attackEverywhereRoughScore({ humanDistance, humanFrontierPressure, support, context }) {
+  if (context.underAttack) return 0;
   if (context.botPieceCount < 3) return 0;
 
   const frontGap = context.humanFrontCount - context.beforeBotFrontCount;
@@ -724,6 +775,7 @@ function attackEverywhereScore({
   botNetworkSupport,
   context,
 }) {
+  if (context.underAttack) return 0;
   if (context.botPieceCount < 3) return 0;
 
   const frontGap = context.humanFrontCount - context.beforeBotFrontCount;
@@ -773,6 +825,7 @@ function closeRangeAttackScore({
 }
 
 function singleStemScore(row, col, support, context) {
+  if (context.underAttack) return 0;
   if (context.botPieceCount >= BOT_BRANCH_AFTER) return 0;
   const lastMove = moveHistory[BOT][moveHistory[BOT].length - 1];
   const base = context.botBase;
