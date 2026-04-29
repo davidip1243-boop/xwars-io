@@ -133,11 +133,11 @@ button:hover {
 
 .shell {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
   margin: 0;
-  padding: 4px;
+  padding: 2px;
   width: 100vw;
 }
 
@@ -211,21 +211,21 @@ h1 {
 .game-layout {
   align-items: start;
   display: grid;
-  gap: 4px;
-  grid-template-columns: minmax(0, 1fr) 158px;
+  gap: 2px;
+  grid-template-columns: minmax(0, 1fr) 190px;
   min-height: 0;
 }
 
 .board-wrap {
   background: var(--surface);
   border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: var(--shadow);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100%;
   min-height: 0;
-  padding: 3px;
+  padding: 1px;
 }
 
 .camera-bar {
@@ -271,7 +271,7 @@ h1 {
   min-height: 0;
   overflow: hidden;
   height: auto;
-  width: min(100%, calc(100vh - 38px));
+  width: min(100%, calc(100vh - 24px));
 }
 
 .board {
@@ -506,18 +506,18 @@ body.theme-paper .cell.x-bot::after {
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  border-radius: 6px;
   display: grid;
-  gap: 7px;
-  grid-template-columns: 14px 1fr auto;
-  margin: 0 auto 4px;
+  gap: 8px;
+  grid-template-columns: 16px 1fr auto;
+  margin: 0 auto 3px;
   max-width: min(620px, 100%);
-  min-height: 28px;
-  padding: 0 8px;
+  min-height: 34px;
+  padding: 0 10px;
 }
 
 .you-strip {
-  margin: 4px auto 0;
+  margin: 3px auto 0;
 }
 
 .online-card {
@@ -784,8 +784,8 @@ select {
 
 .swatch {
   border-radius: 4px;
-  height: 14px;
-  width: 14px;
+  height: 16px;
+  width: 16px;
 }
 
 .swatch.player {
