@@ -387,6 +387,8 @@ function roughBotMoveScore({ row, col }, context) {
   score += homeBaseTrapRoughScore({ row, col, humanTitanDistance: titanDistance, humanMoveReduction: humanFrontierPressure, capture, context });
   score += structureHitResponseRoughScore({ row, col, humanDistance, humanMoveReduction: humanFrontierPressure, capture, context });
   score += weakHumanStrikeRoughScore({ row, col, capture, humanDistance, humanMoveReduction: humanFrontierPressure, context });
+  score += baseContainmentRoughScore({ row, col, capture, humanMoveReduction: humanFrontierPressure, context });
+  score += wallBreakRoughScore({ row, col, capture, humanDistance, humanMoveReduction: humanFrontierPressure, botNetworkSupport: support, context });
   score += titanAvoidanceScore({
     humanTitanDistance: titanDistance,
     humanMoveReduction: humanFrontierPressure,
@@ -449,6 +451,8 @@ function scoreBotMove({ row, col }, context) {
   const openingBranch = openingBranchScore(row, col, botNetworkSupport, context);
   const multiRoute = multiRouteScore(row, col, botNetworkSupport, context);
   const humanFrontierPressure = countAdjacentHumanLegalMoves(row, col, context.beforeHumanMoves);
+  const baseMovesBefore = context.humanBase ? countMovesNearCell(context.beforeHumanMoves, context.humanBase, 2) : 0;
+  const baseMovesAfter = context.humanBase ? countMovesNearCell(afterHumanMoves, context.humanBase, 2) : 0;
 
   let score = 0;
   if (afterHumanMoveCount === 0) score += 10000;
@@ -508,6 +512,27 @@ function scoreBotMove({ row, col }, context) {
     humanMoveReduction,
     reconnectGain,
     threatChange,
+    humanNetworkDistance,
+    botNetworkSupport,
+    lineStrength,
+    context,
+  });
+  score += baseContainmentScore({
+    row,
+    col,
+    capture,
+    humanMoveReduction,
+    baseMovesBefore,
+    baseMovesAfter,
+    afterHumanMoveCount,
+    context,
+  });
+  score += wallBreakScore({
+    row,
+    col,
+    capture,
+    humanMoveReduction,
+    humanStrandedGain,
     humanNetworkDistance,
     botNetworkSupport,
     lineStrength,
@@ -639,6 +664,90 @@ function attackedAdvanceScore({
   return score;
 }
 
+function baseContainmentRoughScore({ row, col, capture, humanMoveReduction, context }) {
+  if (!context.humanBase) return 0;
+  const baseDistance = chebyshevDistance(row, col, context.humanBase.row, context.humanBase.col);
+  if (baseDistance > 3) return 0;
+
+  let score = Math.max(0, 4 - baseDistance) * 120;
+  score += humanMoveReduction * 95;
+  if (baseDistance <= 2 && !capture) score += 180;
+  if (capture && baseDistance <= 2) score -= 140;
+  return score;
+}
+
+function baseContainmentScore({
+  row,
+  col,
+  capture,
+  humanMoveReduction,
+  baseMovesBefore,
+  baseMovesAfter,
+  afterHumanMoveCount,
+  context,
+}) {
+  if (!context.humanBase) return 0;
+  const baseDistance = chebyshevDistance(row, col, context.humanBase.row, context.humanBase.col);
+  if (baseDistance > 4) return 0;
+
+  const baseMoveReduction = baseMovesBefore - baseMovesAfter;
+  let score = 0;
+  score += Math.max(0, 4 - baseDistance) * 170;
+  score += baseMoveReduction * 260;
+  score += humanMoveReduction * 80;
+  if (baseMovesAfter === 0 && baseMovesBefore > 0) score += 1600;
+  if (afterHumanMoveCount < PLACEMENTS_PER_TURN) score += 700;
+
+  if (capture && baseDistance <= 2 && baseMovesAfter > 0) score -= 520 + baseMovesAfter * 180;
+  if (!capture && baseDistance <= 2) score += 280;
+
+  return score;
+}
+
+function wallBreakRoughScore({ row, col, capture, humanDistance, humanMoveReduction, botNetworkSupport, context }) {
+  if (humanDistance > 3) return 0;
+  const humanSupport = networkSupportAt(row, col, HUMAN);
+  const stronger = botNetworkSupport >= humanSupport;
+  let score = 0;
+  if (stronger) score += 220 + humanMoveReduction * 70;
+  if (capture && stronger) score += 240;
+  if (!stronger && !capture) score -= 180;
+  if (context.underAttack && stronger) score += 120;
+  return score;
+}
+
+function wallBreakScore({
+  row,
+  col,
+  capture,
+  humanMoveReduction,
+  humanStrandedGain,
+  humanNetworkDistance,
+  botNetworkSupport,
+  lineStrength,
+  context,
+}) {
+  if (humanNetworkDistance > 3) return 0;
+  const humanSupport = networkSupportAt(row, col, HUMAN);
+  const attackStrength = botNetworkSupport * 2 + lineStrength;
+  const defenseStrength = humanSupport * 2 + (capture ? 0 : 1);
+  const stronger = attackStrength >= defenseStrength;
+
+  let score = 0;
+  if (stronger) {
+    score += 520;
+    score += humanMoveReduction * 180;
+    score += humanStrandedGain * 520;
+    score += Math.max(0, 4 - humanNetworkDistance) * 110;
+    if (capture) score += 360;
+    if (context.underAttack) score += 240;
+  } else if (!capture) {
+    score -= 360;
+  }
+
+  return score;
+}
+
 function analyzeHumanWeakCells(humanNetworkCells, botNetworkCells, humanMoves) {
   const weakCells = new Map();
   const base = findBase(HUMAN);
@@ -706,7 +815,7 @@ function weakHumanStrikeScore({
 
   let score = 0;
   score += weakness * (capture ? 2.1 : 0.85);
-  score += humanStrandedGain * 230;
+  score += humanStrandedGain * 420;
   score += humanMoveReduction * 125;
   score += botNetworkSupport * 45;
   score += lineStrength * 55;
@@ -1323,6 +1432,14 @@ function savePlayerProfile() {
 
 function countAdjacentHumanLegalMoves(row, col, humanMoves) {
   return humanMoves.filter((move) => distance(row, col, move.row, move.col) <= 2).length;
+}
+
+function countMovesNearCell(moves, center, radius) {
+  return moves.filter((move) => chebyshevDistance(move.row, move.col, center.row, center.col) <= radius).length;
+}
+
+function networkSupportAt(row, col, owner) {
+  return neighbors(row, col).filter(([nextRow, nextCol]) => isNetworkCell(board[nextRow][nextCol], owner)).length;
 }
 
 function distance(aRow, aCol, bRow, bCol) {
