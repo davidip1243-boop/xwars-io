@@ -389,6 +389,7 @@ function roughBotMoveScore({ row, col }, context) {
   score += weakHumanStrikeRoughScore({ row, col, capture, humanDistance, humanMoveReduction: humanFrontierPressure, context });
   score += baseContainmentRoughScore({ row, col, capture, humanMoveReduction: humanFrontierPressure, context });
   score += wallBreakRoughScore({ row, col, capture, humanDistance, humanMoveReduction: humanFrontierPressure, botNetworkSupport: support, context });
+  score += attackCommitmentRoughScore({ row, col, capture, humanDistance, humanMoveReduction: humanFrontierPressure, context });
   score += titanAvoidanceScore({
     humanTitanDistance: titanDistance,
     humanMoveReduction: humanFrontierPressure,
@@ -537,6 +538,17 @@ function scoreBotMove({ row, col }, context) {
     humanNetworkDistance,
     botNetworkSupport,
     lineStrength,
+    context,
+  });
+  score += attackCommitmentScore({
+    row,
+    col,
+    capture,
+    humanMoveReduction,
+    humanStrandedGain,
+    humanNetworkDistance,
+    baseMovesBefore,
+    baseMovesAfter,
     context,
   });
   score += weakHumanStrikeScore({
@@ -748,6 +760,53 @@ function wallBreakScore({
   }
 
   return score;
+}
+
+function attackCommitmentRoughScore({ row, col, capture, humanDistance, humanMoveReduction, context }) {
+  if (!botCommittedToAttackThisTurn(context)) return 0;
+  const continuesAttack = capture || humanMoveReduction > 0 || humanDistance <= 2;
+  if (continuesAttack) return 220 + humanMoveReduction * 75;
+  return -720;
+}
+
+function attackCommitmentScore({
+  row,
+  col,
+  capture,
+  humanMoveReduction,
+  humanStrandedGain,
+  humanNetworkDistance,
+  baseMovesBefore,
+  baseMovesAfter,
+  context,
+}) {
+  if (!botCommittedToAttackThisTurn(context)) return 0;
+
+  const baseContainmentGain = baseMovesBefore > baseMovesAfter;
+  const continuesAttack = capture || humanMoveReduction > 0 || humanStrandedGain > 0 || humanNetworkDistance <= 2 || baseContainmentGain;
+  if (continuesAttack) {
+    let score = 520;
+    score += humanMoveReduction * 180;
+    score += humanStrandedGain * 420;
+    if (capture) score += 360;
+    if (humanNetworkDistance <= 2) score += 160;
+    if (baseContainmentGain) score += (baseMovesBefore - baseMovesAfter) * 260;
+    return score;
+  }
+
+  const quietSupport = networkSupportAt(row, col, BOT) > 1;
+  return quietSupport ? -1100 : -760;
+}
+
+function botCommittedToAttackThisTurn(context) {
+  const usedThisTurn = routeIndexThisTurn();
+  if (usedThisTurn === 0) return false;
+  const recentBotMoves = moveHistory[BOT].slice(-usedThisTurn);
+  return recentBotMoves.some((move) => {
+    if (move.capture) return true;
+    if (move.features?.trap >= 0.25 || move.features?.finish > 0 || move.features?.capture > 0) return true;
+    return distanceToCells(move.row, move.col, context.humanNetworkCells) <= 2;
+  });
 }
 
 function analyzeHumanWeakCells(humanNetworkCells, botNetworkCells, humanMoves) {
