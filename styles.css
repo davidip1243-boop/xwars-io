@@ -212,7 +212,7 @@ h1 {
   align-items: start;
   display: grid;
   gap: 2px;
-  grid-template-columns: minmax(0, 1fr) 190px;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 24vw, 420px);
   min-height: 0;
 }
 
@@ -435,11 +435,11 @@ body.theme-paper .cell.x-bot::after {
 
 .panel-tab-btn {
   border-color: transparent;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   min-width: 0;
   min-height: 34px;
   overflow: hidden;
-  padding: 0 3px;
+  padding: 0 6px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
