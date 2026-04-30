@@ -64,6 +64,7 @@ const statusText = document.querySelector("#statusText");
 const playerCount = document.querySelector("#playerCount");
 const botCount = document.querySelector("#botCount");
 const moveLog = document.querySelector("#moveLog");
+const liveFeed = document.querySelector("#liveFeed");
 const newGameBtn = document.querySelector("#newGameBtn");
 const modeButtons = [...document.querySelectorAll(".mode-btn")];
 const panelTabButtons = [...document.querySelectorAll(".panel-tab-btn")];
@@ -174,6 +175,7 @@ function resetGame() {
   moveNumber = 1;
   placementsLeft = PLACEMENTS_PER_TURN;
   moveLog.innerHTML = "";
+  liveFeed.textContent = "Make a move and I will analyze it here.";
   rulesText.textContent = `${config.rules} No legal move means defeat.`;
   updateModeButtons();
   focusOwnerCamera(HUMAN);
@@ -1454,12 +1456,15 @@ function countPieces() {
 function logMove(owner, row, col, capture, features) {
   const item = document.createElement("li");
   const name = owner === HUMAN ? "You" : "Bot";
+  const moveText = `${moveNumber}. ${name} ${capture ? "made a titan at" : "placed X at"} ${row + 1}, ${col + 1}`;
+  const analysisText = analyzeMove(owner, row, col, capture, features);
   const summary = document.createElement("strong");
-  summary.textContent = `${moveNumber}. ${name} ${capture ? "made a titan at" : "placed X at"} ${row + 1}, ${col + 1}`;
+  summary.textContent = moveText;
   const analysis = document.createElement("span");
   analysis.className = "move-analysis";
-  analysis.textContent = analyzeMove(owner, row, col, capture, features);
+  analysis.textContent = analysisText;
   item.append(summary, analysis);
+  liveFeed.textContent = `${moveText}. ${analysisText}`;
   moveLog.prepend(item);
   moveNumber += 1;
 }
