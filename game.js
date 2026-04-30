@@ -394,6 +394,7 @@ function roughBotMoveScore({ row, col }, context) {
     humanMoveReduction: humanFrontierPressure,
     threatChange: 0,
     reconnectGain: 0,
+    humanStrandedGain: 0,
     botNetworkSupport: support,
     lineStrength,
     capture,
@@ -562,6 +563,7 @@ function scoreBotMove({ row, col }, context) {
     humanMoveReduction,
     threatChange,
     reconnectGain,
+    humanStrandedGain,
     botNetworkSupport,
     lineStrength,
     capture,
@@ -822,7 +824,7 @@ function weakHumanStrikeScore({
   if (capture) score += 240;
   if (afterHumanMoveCount < PLACEMENTS_PER_TURN) score += 520;
   if (humanNetworkDistance <= 2) score += 130;
-  if (humanTitanDistance <= 2 && !capture && humanStrandedGain === 0) score -= 180;
+  if (humanTitanDistance <= 2 && !capture && humanStrandedGain === 0 && humanMoveReduction <= 0) score -= 180;
   if (context.underAttack && (capture || humanStrandedGain > 0 || humanMoveReduction > 0)) score += 120;
 
   return score;
@@ -833,6 +835,7 @@ function titanAvoidanceScore({
   humanMoveReduction,
   threatChange,
   reconnectGain,
+  humanStrandedGain,
   botNetworkSupport,
   lineStrength,
   capture,
@@ -840,14 +843,19 @@ function titanAvoidanceScore({
   if (humanTitanDistance > 4) return 0;
 
   const danger = 5 - humanTitanDistance;
+  const disruptsConnection = humanStrandedGain > 0 || humanMoveReduction > 0 || threatChange > 45;
+  const reconnectsInTime = reconnectGain > 0;
   let score = 0;
   score += humanMoveReduction * 115;
   score += Math.max(0, threatChange) * 1.15;
-  score += reconnectGain * 170;
+  score += reconnectGain * 230;
+  score += humanStrandedGain * 360;
   score += lineStrength * 90;
   score += botNetworkSupport === 1 ? 95 : -(botNetworkSupport - 1) * 70;
   if (capture) score += 120;
-  score -= danger * 105;
+  if (reconnectsInTime && disruptsConnection) score += danger * 180;
+  else if (reconnectsInTime || disruptsConnection) score -= danger * 35;
+  else score -= danger * 130;
 
   return score;
 }
